@@ -17,7 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
-
+    private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
 
@@ -29,7 +29,8 @@ public class SecurityConfig {
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/home", true)
+//                        .defaultSuccessUrl("/home", true)
+                                .successHandler(authenticationSuccessHandler)
                         .permitAll()
                 );
 
