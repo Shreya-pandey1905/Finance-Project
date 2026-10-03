@@ -4,6 +4,7 @@ import com.finance.financeProject.entity.User;
 import com.finance.financeProject.repository.UserRepository;
 import com.finance.financeProject.service.QRService;
 import com.finance.financeProject.service.TOTPService;
+import dev.samstevens.totp.exceptions.CodeGenerationException;
 import dev.samstevens.totp.exceptions.QrGenerationException;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,8 @@ public class TwoFactorController {
     private final QRService qrService;
 
     @GetMapping("/setup-authenticator")
-    public String setupAuthenticator(HttpSession session, Model model) throws QrGenerationException {
+    public String setupAuthenticator(HttpSession session, Model model)
+            throws QrGenerationException {
 
         String email = (String) session.getAttribute("pendingEmail");
 
@@ -33,14 +35,17 @@ public class TwoFactorController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String secret = totpService.generateSecret();
+        String secret = (String) session.getAttribute("pendingSecret");
+
+        if (secret == null) {
+            secret = totpService.generateSecret();
+            session.setAttribute("pendingSecret", secret);
+        }
 
         String qrCode = qrService.generateQRCode(
                 user.getEmail(),
                 secret
         );
-
-        session.setAttribute("pendingSecret", secret);
 
         model.addAttribute("qrCode", qrCode);
         model.addAttribute("email", user.getEmail());
@@ -52,39 +57,50 @@ public class TwoFactorController {
     public String verifyOtp(
             @RequestParam String code,
             HttpSession session,
-            Model model) throws QrGenerationException {
+            Model model) throws QrGenerationException, CodeGenerationException {
 
         String email = (String) session.getAttribute("pendingEmail");
-        String secret = (String) session.getAttribute("pendingSecret");
 
-        if (email == null || secret == null) {
+        if (email == null) {
             return "redirect:/login";
-        }
-        System.out.println("EMAIL = " + email);
-        System.out.println("SECRET = " + secret);
-        System.out.println("OTP = " + code);
-        boolean valid = totpService.verifyCode(secret, code);
-
-        if (!valid) {
-            model.addAttribute("error", "Invalid OTP. Please try again.");
-
-            model.addAttribute("email", email);
-
-            String qrCode = qrService.generateQRCode(email, secret);
-            model.addAttribute("qrCode", qrCode);
-
-            return "setup-authenticator";
         }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setSecretKey(secret);
-        user.setFirstTimeLogin(false);
+        String secret;
 
-        userRepository.save(user);
+        if (user.isFirstTimeLogin()) {
+            secret = (String) session.getAttribute("pendingSecret");
 
-        session.removeAttribute("pendingSecret");
+            if (secret == null) {
+                return "redirect:/login";
+            }
+        } else {
+            secret = user.getSecretKey();
+        }
+
+        System.out.println("EMAIL = " + email);
+        System.out.println("SECRET = " + secret);
+        System.out.println("OTP = " + code);
+
+        boolean valid = totpService.verifyCode(secret, code);
+
+        if (!valid) {
+            model.addAttribute("error", "Invalid OTP. Please try again.");
+            return user.isFirstTimeLogin()
+                    ? "setup-authenticator"
+                    : "verify-otp";
+        }
+
+        if (user.isFirstTimeLogin()) {
+            user.setSecretKey(secret);
+            user.setFirstTimeLogin(false);
+            userRepository.save(user);
+
+            session.removeAttribute("pendingSecret");
+        }
+
         session.removeAttribute("pendingEmail");
 
         return "redirect:/home";
