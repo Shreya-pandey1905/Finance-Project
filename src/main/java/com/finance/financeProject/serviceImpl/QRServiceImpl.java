@@ -24,13 +24,15 @@ public class QRServiceImpl implements QRService {
                 .period(30)
                 .build();
 
-        QrGenerator qrGenerator = new ZxingPngQrGenerator();
+        QrGenerator qrGenerator = new ZxingPngQrGenerator(); //PNG image
 
-        byte[] image = qrGenerator.generate(data);
+        byte[] image = qrGenerator.generate(data);   //byte[] contains the actual binary image data
 
         return Utils.getDataUriForImage(
                 image,
-                qrGenerator.getImageMimeType()
+                qrGenerator.getImageMimeType() //     MIME type = image/png, image = PNG bytes
+
+
         );
     }
 }

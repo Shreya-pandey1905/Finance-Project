@@ -33,59 +33,8 @@ public class User {
     @Column(name = "SecretKey")
     private String secretKey;
 
-    public Integer getUserId() {
-        return userId;
-    }
+    @Column(name = "refresh_token")
+    private String refreshToken;
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
-    }
 
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public boolean isFirstTimeLogin() {
-        return firstTimeLogin;
-    }
-
-    public void setFirstTimeLogin(boolean firstTimeLogin) {
-        this.firstTimeLogin = firstTimeLogin;
-    }
-
-    public String getSecretKey() {
-        return secretKey;
-    }
-
-    public void setSecretKey(String secretKey) {
-        this.secretKey = secretKey;
-    }
 }

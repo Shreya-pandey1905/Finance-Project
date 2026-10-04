@@ -1,7 +1,9 @@
 package com.finance.financeProject.controller;
 
+import com.finance.financeProject.JwtAccessToken.JwtService;
 import com.finance.financeProject.entity.User;
 import com.finance.financeProject.repository.UserRepository;
+import com.finance.financeProject.service.EmailOtpService;
 import com.finance.financeProject.service.QRService;
 import com.finance.financeProject.service.TOTPService;
 import dev.samstevens.totp.exceptions.CodeGenerationException;
@@ -17,14 +19,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @RequiredArgsConstructor
 public class TwoFactorController {
-
+    private final EmailOtpService emailOtpService;
     private final UserRepository userRepository;
     private final TOTPService totpService;
     private final QRService qrService;
+    private final JwtService jwtService;
 
     @GetMapping("/setup-authenticator")
-    public String setupAuthenticator(HttpSession session, Model model)
-            throws QrGenerationException {
+    public String setupAuthenticator(HttpSession session, Model model) throws QrGenerationException {
 
         String email = (String) session.getAttribute("pendingEmail");
 
@@ -53,11 +55,8 @@ public class TwoFactorController {
         return "setup-authenticator";
     }
 
-    @PostMapping("/verify-otp")
-    public String verifyOtp(
-            @RequestParam String code,
-            HttpSession session,
-            Model model) throws QrGenerationException, CodeGenerationException {
+    @GetMapping("/verify-otp")
+    public String showVerifyOtp( HttpSession session, Model model) {
 
         String email = (String) session.getAttribute("pendingEmail");
 
@@ -65,6 +64,21 @@ public class TwoFactorController {
             return "redirect:/login";
         }
 
+        model.addAttribute("email", email);
+
+        return "verify-otp";
+    }
+
+    @PostMapping("/verify-otp")
+    public String verifyOtp(
+            @RequestParam String code,
+            HttpSession session,
+            Model model) throws QrGenerationException, CodeGenerationException {
+
+        String email = (String) session.getAttribute("pendingEmail");
+        if (email == null) {
+           return "redirect:/login";
+        }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -88,9 +102,17 @@ public class TwoFactorController {
 
         if (!valid) {
             model.addAttribute("error", "Invalid OTP. Please try again.");
-            return user.isFirstTimeLogin()
-                    ? "setup-authenticator"
-                    : "verify-otp";
+
+            if (user.isFirstTimeLogin()) {
+                String qrCode = qrService.generateQRCode(user.getEmail(), secret);
+                model.addAttribute("qrCode", qrCode);
+                model.addAttribute("email", user.getEmail());
+
+                return "setup-authenticator";
+            }
+
+            model.addAttribute("email", user.getEmail());
+            return "verify-otp";
         }
 
         if (user.isFirstTimeLogin()) {
@@ -101,8 +123,24 @@ public class TwoFactorController {
             session.removeAttribute("pendingSecret");
         }
 
-        session.removeAttribute("pendingEmail");
+
+        String accessToken = jwtService.generateToken(
+                user.getEmail(),
+                user.getRole()
+        );
+
+        String refreshToken = jwtService.generateRefreshToken(
+                user.getEmail()
+        );
+
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+
+        System.out.println("ACCESS TOKEN = " + accessToken);
+        System.out.println("REFRESH TOKEN = " + refreshToken);
 
         return "redirect:/home";
     }
+
+
 }

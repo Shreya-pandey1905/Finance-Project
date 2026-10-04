@@ -29,8 +29,8 @@ public class TOTPServiceImpl implements TOTPService {
 
     @Override
     public String generateCode(String secret) throws CodeGenerationException {
-        long time=new SystemTimeProvider().getTime();
-        long counter=time/30;
+        long time=new SystemTimeProvider().getTime(); // give current time in milliseconds
+        long counter=time/30; // e.g  600s so thwe counter will be 600/30= 20, The counter changes every 30 seconds.
 
         return codeGenerator.generate(secret,counter);
     }

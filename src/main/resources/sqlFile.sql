@@ -2,6 +2,8 @@ CREATE DATABASE IF NOT EXISTS `forgehub`;
 USE `forgehub`;
 show tables;
 select * from users;
+
+desc users;
 desc users;
 
 INSERT INTO users
@@ -25,6 +27,13 @@ VALUES
      
      UPDATE users
 SET password_hash = '$2a$10$prPOvv55P9xvpZGcBAgQseLUDCiyaMJCWPNGSnU3D2qm4g/j39H7O'
-WHERE email = 'admin1@gmail.com';
+WHERE email = 'admin2@gmail.com';
 
 SET SQL_SAFE_UPDATES = 0;
+
+ALTER TABLE Users
+Modify COLUMN refresh_token VARCHAR(500) NULL;
+
+UPDATE Users
+SET Secret_Key = NULL
+WHERE Email = 'spprac82@gmail.com';

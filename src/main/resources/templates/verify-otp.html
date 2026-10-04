@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Verify OTP</title>
+</head>
+<body>
+
+<h2>Verify Authenticator OTP</h2>
+
+<p>Enter the 6-digit code from Google Authenticator.</p>
+
+<form action="/verify-otp" method="post">
+
+    <input
+            type="text"
+            name="code"
+            maxlength="6"
+            pattern="[0-9]{6}"
+            required
+    >
+
+    <button type="submit">Verify OTP</button>
+
+</form>
+
+<p th:if="${error}" th:text="${error}"></p>
+
+<!-- Lost Authenticator option -->
+<p>
+    <a href="/forgot-authenticator">
+        Lost Authenticator?
+    </a>
+</p>
+
+</body>
+</html>
